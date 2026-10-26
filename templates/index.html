@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <title>Excelarate: Excel and CSV converter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('gc-theme') ||
+          (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb o1"></span><span class="orb o2"></span><span class="orb o3"></span><span class="orb o4"></span>
+    <div class="grain"></div>
+  </div>
+
+  <svg class="defs" width="0" height="0" aria-hidden="true" focusable="false">
+    <filter id="lens" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="2" seed="7" result="n"/>
+      <feGaussianBlur in="n" stdDeviation="1.2" result="nb"/>
+      <feDisplacementMap in="SourceGraphic" in2="nb" scale="16" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </svg>
+
+  <header class="nav glass">
+    <div class="brand"><span class="brand-mark"></span><span class="brand-name">Excelarate</span></div>
+    <nav class="mode-switch" id="modeSwitch" data-mode="excel" role="tablist" aria-label="Conversion direction">
+      <span class="thumb" aria-hidden="true"></span>
+      <button role="tab" aria-selected="true" data-mode="excel">Excel to CSV</button>
+      <button role="tab" aria-selected="false" data-mode="csv">CSV to Excel</button>
+    </nav>
+    <button class="btn icon" id="themeBtn" type="button" aria-label="Switch between light and dark theme"></button>
+  </header>
+
+  <main>
+    <section class="intro">
+      <h1>Convert, filter and export your spreadsheets.</h1>
+      <p>Drop in a file, choose what you need, and download it in the format you want.</p>
+    </section>
+
+    <!-- ===================== Excel to CSV ===================== -->
+    <section id="view-excel" class="view" aria-label="Excel to CSV">
+      <div id="xEmpty">
+        <div class="dropzone glass" id="xDrop" role="button" tabindex="0" aria-label="Choose an Excel file">
+          <input type="file" id="xInput" accept=".xlsx,.xlsm,.xls" hidden>
+          <div class="dz-icon" data-icon="upload"></div>
+          <h2>Drop an Excel file here</h2>
+          <p class="muted">or <span class="link">browse your computer</span>. Accepts .xlsx, .xlsm and .xls up to {{ max_mb }} MB.</p>
+          <div class="dz-progress" hidden>
+            <div class="bar"><span></span></div>
+            <p class="dz-status muted"></p>
+          </div>
+        </div>
+        <ol class="steps">
+          <li><b>Upload a workbook</b><span>Every sheet is loaded so you can switch between them.</span></li>
+          <li><b>Filter like in Excel</b><span>Search all columns or filter any column by value, range or text.</span></li>
+          <li><b>Download the CSV</b><span>Saved as filename_sheetname.csv with only the rows you kept.</span></li>
+        </ol>
+      </div>
+
+      <div id="xWork" hidden>
+        <div class="file-bar glass">
+          <div class="file-ic" data-icon="file"></div>
+          <div class="file-text">
+            <b id="xFileName"></b>
+            <span class="muted" id="xFileMeta"></span>
+          </div>
+          <button class="btn sm" id="xReplace" type="button">Choose another file</button>
+        </div>
+
+        <div class="sheet-picker glass">
+          <span class="muted label">Sheet</span>
+          <div class="chips" id="xSheets" role="group" aria-label="Sheets in this workbook"></div>
+        </div>
+
+        <div class="tabs glass" id="xTabs" role="tablist" aria-label="Sheet views">
+          <button class="tab" role="tab" aria-selected="true" data-tab="preview">Preview and filter</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="columns">Columns</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="stats">Statistics</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="export">Export</button>
+        </div>
+
+        <section class="panel glass no-lit" data-panel="preview">
+          <div class="filters well">
+            <div class="filter-row">
+              <label class="search">
+                <span class="sr-only">Search all columns</span>
+                <span class="s-ic" data-icon="search"></span>
+                <input type="search" id="xSearch" placeholder="Search all columns" autocomplete="off">
+              </label>
+              <select id="xAddFilter" aria-label="Add a column filter"></select>
+              <button class="btn ghost sm" id="xClear" type="button" hidden>Clear filters</button>
+            </div>
+            <div class="f-grid" id="xFGrid"></div>
+          </div>
+          <p class="result-line" id="xResult" aria-live="polite"></p>
+          <div class="table-wrap" id="xTable"></div>
+          <div class="pager" id="xPager"></div>
+        </section>
+
+        <section class="panel glass no-lit" data-panel="columns" hidden>
+          <div id="xColsBody"></div>
+        </section>
+
+        <section class="panel glass no-lit" data-panel="stats" hidden>
+          <div id="xStatsBody"></div>
+        </section>
+
+        <section class="panel glass no-lit" data-panel="export" hidden>
+          <div id="xExportBody"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ===================== CSV to Excel ===================== -->
+    <section id="view-csv" class="view" aria-label="CSV to Excel" hidden>
+      <div class="dropzone glass" id="cDrop" role="button" tabindex="0" aria-label="Choose CSV files">
+        <input type="file" id="cInput" accept=".csv,.tsv,.txt" multiple hidden>
+        <div class="dz-icon" data-icon="upload"></div>
+        <h2 id="cDropTitle">Drop one or more CSV files here</h2>
+        <p class="muted">or <span class="link">browse your computer</span>. Each file becomes its own sheet.</p>
+      </div>
+
+      <ol class="steps" id="cSteps">
+        <li><b>Upload CSV files</b><span>Large files are fine. They are streamed, not loaded all at once.</span></li>
+        <li><b>Check the preview</b><span>The first 10 rows of each file show how the columns were split.</span></li>
+        <li><b>Build the workbook</b><span>Files over Excel's row limit are split across several sheets.</span></li>
+      </ol>
+
+      <div id="cWork" hidden>
+        <section class="glass card options">
+          <label class="field">
+            <span>Delimiter</span>
+            <select id="cDelim">
+              <option value="auto">Detect automatically</option>
+              <option value="comma">Comma ( , )</option>
+              <option value="semicolon">Semicolon ( ; )</option>
+              <option value="tab">Tab</option>
+              <option value="pipe">Pipe ( | )</option>
+            </select>
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="cInfer">
+            <span>Detect numbers and dates</span>
+          </label>
+          <p class="muted small hint">Off keeps every column as text, so IDs, leading zeros and long numbers are never changed. On converts columns that are clearly numeric or ISO dates (YYYY-MM-DD).</p>
+        </section>
+
+        <div id="cFiles" class="file-list"></div>
+
+        <section class="glass card" id="cExport">
+          <h2>Build the workbook</h2>
+          <p class="muted" id="cExportInfo"></p>
+          <div class="export-row">
+            <label class="field grow">
+              <span>Workbook name</span>
+              <input type="text" id="cName" placeholder="combined" autocomplete="off">
+            </label>
+            <button class="btn primary" id="cBuild" type="button">Build Excel file</button>
+          </div>
+          <div id="cProgress" hidden>
+            <div class="bar"><span></span></div>
+            <p class="muted small" id="cProgressText"></p>
+          </div>
+          <div id="cResult" hidden></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

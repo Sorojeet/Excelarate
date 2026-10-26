@@ -1,0 +1,5 @@
+flask>=3.0
+polars>=1.0
+fastexcel>=0.12
+xlsxwriter>=3.2
+gunicorn>=22; sys_platform != "win32"

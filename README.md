@@ -1,4 +1,4 @@
-# Glassconvert
+# Excelarate
 
 Excel to CSV and CSV to Excel converter. Flask and Polars on the server, plain HTML, CSS and JavaScript in the browser.
 
